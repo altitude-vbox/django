@@ -412,9 +412,12 @@ class Options(object):
                     cache[obj] = parent
                 else:
                     cache[obj] = model
+        from django.contrib.contenttypes import generic
         for klass in get_models():
             for f in klass._meta.local_many_to_many:
-                if f.rel and not isinstance(f.rel.to, str) and self == f.rel.to._meta:
+                if f.rel and isinstance(f, generic.GenericRelation) and self == klass._meta:
+                    cache[RelatedObject(klass, f.rel.to, f)] = None
+                elif f.rel and not isinstance(f.rel.to, str) and self == f.rel.to._meta:
                     cache[RelatedObject(f.rel.to, klass, f)] = None
         if app_cache_ready():
             self._related_many_to_many_cache = cache

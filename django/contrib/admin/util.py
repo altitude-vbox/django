@@ -71,7 +71,7 @@ def get_change_view_url(app_label, module_name, pk, admin_site, levels_to_root):
     except NoReverseMatch:
         return '%s%s/%s/%s/' % ('../'*levels_to_root, app_label, module_name, pk)
 
-def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_depth, admin_site, levels_to_root=4):
+def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_depth, admin_site, levels_to_root=4, objs_seen=[]):
     """
     Helper function that recursively populates deleted_objects.
 
@@ -86,18 +86,30 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
     if current_depth > 16:
         return # Avoid recursing too deep.
     opts_seen = []
+    if current_depth == 1:
+        objs_seen = [] # avoid to have the older objs_seen
+        if obj.__class__ in admin_site._registry and \
+            hasattr(admin_site._registry[obj.__class__], 'get_delete_confirmation_message'):
+            # Display a link to the admin page but use an admin function in order to change the message, obj and link
+            result_msg = admin_site._registry[obj.__class__].get_delete_confirmation_message(
+                obj, deleted_objects[0], obj, admin_site, levels_to_root)
+            if result_msg:
+                deleted_objects[0] = mark_safe(result_msg)
     for related in opts.get_all_related_objects():
         has_admin = related.model in admin_site._registry
-        if related.opts in opts_seen:
-            continue
-        opts_seen.append(related.opts)
         rel_opts_name = related.get_accessor_name()
+        if rel_opts_name in opts_seen:
+            continue
+        opts_seen.append(rel_opts_name)
         if isinstance(related.field.rel, models.OneToOneRel):
             try:
                 sub_obj = getattr(obj, rel_opts_name)
             except ObjectDoesNotExist:
                 pass
             else:
+                if sub_obj in objs_seen:
+                    continue # avoid to have the same object
+                objs_seen.append(sub_obj)
                 if has_admin:
                     p = '%s.%s' % (related.opts.app_label, related.opts.get_delete_permission())
                     if not user.has_perm(p):
@@ -109,6 +121,14 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                     # admin or is edited inline.
                     nh(deleted_objects, current_depth,
                         [u'%s: %s' % (capfirst(related.opts.verbose_name), force_unicode(sub_obj)), []])
+                elif has_admin and hasattr(admin_site._registry[related.model], 'get_delete_confirmation_message'):
+                    # Display a link to the admin page but use an admin function in order to change the message, obj and link
+                    result_msg = admin_site._registry[related.model].get_delete_confirmation_message(
+                        obj, u'%s:' % capfirst(related.opts.verbose_name), sub_obj, admin_site, levels_to_root)
+                    if not result_msg:
+                        objs_seen.remove(sub_obj) # in order to repeat this obj in other relation
+                        continue
+                    nh(deleted_objects, current_depth, [mark_safe(result_msg), []])
                 else:
                     # Display a link to the admin page.
                     nh(deleted_objects, current_depth, [mark_safe(u'%s: <a href="%s">%s</a>' %
@@ -119,16 +139,27 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                                             admin_site,
                                             levels_to_root),
                         escape(sub_obj))), []])
-                get_deleted_objects(deleted_objects, perms_needed, user, sub_obj, related.opts, current_depth+2, admin_site)
+                get_deleted_objects(deleted_objects, perms_needed, user, sub_obj, related.opts, current_depth+2, admin_site, objs_seen=objs_seen)
         else:
             has_related_objs = False
             for sub_obj in getattr(obj, rel_opts_name).all():
+                if sub_obj in objs_seen:
+                    continue # avoid to have the same object
+                objs_seen.append(sub_obj)
                 has_related_objs = True
                 if not has_admin:
                     # Don't display link to edit, because it either has no
                     # admin or is edited inline.
                     nh(deleted_objects, current_depth,
                         [u'%s: %s' % (capfirst(related.opts.verbose_name), force_unicode(sub_obj)), []])
+                elif has_admin and hasattr(admin_site._registry[related.model], 'get_delete_confirmation_message'):
+                    # Display a link to the admin page but use an admin function in order to change the message, obj and link
+                    result_msg = admin_site._registry[related.model].get_delete_confirmation_message(
+                        obj, u'%s:' % capfirst(related.opts.verbose_name), sub_obj, admin_site, levels_to_root)
+                    if not result_msg:
+                        objs_seen.remove(sub_obj) # in order to repeat this obj in other relation
+                        continue
+                    nh(deleted_objects, current_depth, [mark_safe(result_msg), []])
                 else:
                     # Display a link to the admin page.
                     nh(deleted_objects, current_depth, [mark_safe(u'%s: <a href="%s">%s</a>' %
@@ -139,34 +170,49 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                                             admin_site,
                                             levels_to_root),
                         escape(sub_obj))), []])
-                get_deleted_objects(deleted_objects, perms_needed, user, sub_obj, related.opts, current_depth+2, admin_site)
+                get_deleted_objects(deleted_objects, perms_needed, user, sub_obj, related.opts, current_depth+2, admin_site, objs_seen=objs_seen)
             # If there were related objects, and the user doesn't have
             # permission to delete them, add the missing perm to perms_needed.
             if has_admin and has_related_objs:
                 p = '%s.%s' % (related.opts.app_label, related.opts.get_delete_permission())
                 if not user.has_perm(p):
                     perms_needed.add(related.opts.verbose_name)
+    from django.contrib.contenttypes import generic
     for related in opts.get_all_related_many_to_many_objects():
         has_admin = related.model in admin_site._registry
-        if related.opts in opts_seen:
-            continue
-        opts_seen.append(related.opts)
         rel_opts_name = related.get_accessor_name()
+        if rel_opts_name in opts_seen:
+            continue
+        opts_seen.append(rel_opts_name)
         has_related_objs = False
 
         # related.get_accessor_name() could return None for symmetrical relationships
         if rel_opts_name:
-            rel_objs = getattr(obj, rel_opts_name, None)
+            rel_objs = getattr(obj, rel_opts_name, None) or \
+                (isinstance(related.field, generic.GenericRelation) and getattr(obj, related.field.verbose_name, None))                
             if rel_objs:
                 has_related_objs = True
 
         if has_related_objs:
             for sub_obj in rel_objs.all():
+                if sub_obj in objs_seen:
+                    continue # avoid to have the same object
+                objs_seen.append(sub_obj)
                 if not has_admin:
                     # Don't display link to edit, because it either has no
                     # admin or is edited inline.
                     nh(deleted_objects, current_depth, [_('One or more %(fieldname)s in %(name)s: %(obj)s') % \
                         {'fieldname': force_unicode(related.field.verbose_name), 'name': force_unicode(related.opts.verbose_name), 'obj': escape(sub_obj)}, []])
+                elif has_admin and hasattr(admin_site._registry[related.model], 'get_delete_confirmation_message'):
+                    # Display a link to the admin page but use an admin function in order to change the message, obj and link
+                    result_msg = admin_site._registry[related.model].get_delete_confirmation_message(
+                        obj, (_('One or more %(fieldname)s in %(name)s:') % \
+                            {'fieldname': escape(force_unicode(related.field.verbose_name)), 'name': escape(force_unicode(related.opts.verbose_name))}),
+                        sub_obj, admin_site, levels_to_root)
+                    if not result_msg:
+                        objs_seen.remove(sub_obj) # in order to repeat this obj in other relation
+                        continue
+                    nh(deleted_objects, current_depth, [mark_safe(result_msg), []])
                 else:
                     # Display a link to the admin page.
                     nh(deleted_objects, current_depth, [
