@@ -91,8 +91,9 @@ class AdminFileWidget(forms.FileInput):
     def render(self, name, value, attrs=None):
         output = []
         if value and hasattr(value, "url"):
+            from django.utils.encoding import iri_to_uri
             output.append('%s <a target="_blank" href="%s">%s</a> <br />%s ' % \
-                (_('Currently:'), value.url, value, _('Change:')))
+                (_('Currently:'), iri_to_uri(value.url), unicode(value), _('Change:')))
         output.append(super(AdminFileWidget, self).render(name, value, attrs))
         return mark_safe(u''.join(output))
 
