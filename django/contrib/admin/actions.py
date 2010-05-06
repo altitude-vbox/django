@@ -17,7 +17,7 @@ try:
 except NameError:
     from sets import Set as set     # Python 2.3 fallback
 
-def delete_selected(modeladmin, request, queryset):
+def delete_selected(modeladmin, request, queryset, extra_context=None):
     """
     Default action which deletes the selected objects.
 
@@ -74,6 +74,7 @@ def delete_selected(modeladmin, request, queryset):
         "app_label": app_label,
         'action_checkbox_name': helpers.ACTION_CHECKBOX_NAME,
     }
+    context.update(extra_context or {})
 
     # Display the confirmation page
     return render_to_response(modeladmin.delete_confirmation_template or [
