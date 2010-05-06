@@ -26,11 +26,13 @@
         </thead>
         <tbody>
         {% for action in action_list %}
-        <tr>
-            <th scope="row">{{ action.action_time|date:_("DATETIME_FORMAT") }}</th>
-            <td>{{ action.user.username }}{% if action.user.get_full_name %} ({{ action.user.get_full_name }}){% endif %}</td>
-            <td>{{ action.change_message }}</td>
-        </tr>
+            {% if not action.is_deleted %}
+            <tr>
+                <th scope="row">{{ action.action_time|date:_("DATETIME_FORMAT") }}</th>
+                <td>{{ action.user.username }}{% if action.user.get_full_name %} ({{ action.user.get_full_name }}){% endif %}</td>
+                <td>{{ action.change_message }}</td>
+            </tr>
+            {% endif %}
         {% endfor %}
         </tbody>
     </table>

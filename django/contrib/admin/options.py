@@ -387,7 +387,8 @@ class ModelAdmin(BaseModelAdmin):
             content_type_id = ContentType.objects.get_for_model(object).pk,
             object_id       = object.pk,
             object_repr     = force_unicode(object),
-            action_flag     = ADDITION
+            action_flag     = ADDITION,
+            change_message  = _('%s was added.' % object._meta.verbose_name)            
         )
 
     def log_change(self, request, object, message):
@@ -420,7 +421,8 @@ class ModelAdmin(BaseModelAdmin):
             content_type_id = ContentType.objects.get_for_model(self.model).pk,
             object_id       = object.pk,
             object_repr     = object_repr,
-            action_flag     = DELETION
+            action_flag     = DELETION,
+            change_message  = _('%s was deleted.' % object._meta.verbose_name)
         )
 
     def action_checkbox(self, obj):
