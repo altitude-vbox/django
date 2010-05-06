@@ -64,6 +64,7 @@ class BaseModelAdmin(object):
     radio_fields = {}
     prepopulated_fields = {}
     formfield_overrides = {}
+    exclude_add = []
 
     def __init__(self):
         self.formfield_overrides = dict(FORMFIELD_FOR_DBFIELD_DEFAULTS, **self.formfield_overrides)
@@ -102,7 +103,7 @@ class BaseModelAdmin(object):
             # rendered output. formfield can be None if it came from a
             # OneToOneField with parent_link=True or a M2M intermediary.
             if formfield and db_field.name not in self.raw_id_fields:
-                formfield.widget = widgets.RelatedFieldWidgetWrapper(formfield.widget, db_field.rel, self.admin_site)
+                formfield.widget = widgets.RelatedFieldWidgetWrapper(formfield.widget, db_field.rel, self.admin_site, db_field.name not in self.exclude_add)
 
             return formfield
 

@@ -197,13 +197,14 @@ class RelatedFieldWidgetWrapper(forms.Widget):
     This class is a wrapper to a given widget to add the add icon for the
     admin interface.
     """
-    def __init__(self, widget, rel, admin_site):
+    def __init__(self, widget, rel, admin_site, add=True):
         self.is_hidden = widget.is_hidden
         self.needs_multipart_form = widget.needs_multipart_form
         self.attrs = widget.attrs
         self.choices = widget.choices
         self.widget = widget
         self.rel = rel
+        self.add = add
         # so we can check if the related object is registered with this AdminSite
         self.admin_site = admin_site
 
@@ -228,7 +229,7 @@ class RelatedFieldWidgetWrapper(forms.Widget):
             related_url = '%s%s/%s/add/' % info
         self.widget.choices = self.choices
         output = [self.widget.render(name, value, *args, **kwargs)]
-        if rel_to in self.admin_site._registry: # If the related object has an admin interface:
+        if self.add and rel_to in self.admin_site._registry: # If the related object has an admin interface:
             # TODO: "id_" is hard-coded here. This should instead use the correct
             # API to determine the ID dynamically.
             output.append(u'<a href="%s" class="add-another" id="add_id_%s" onclick="return showAddAnotherPopup(this);"> ' % \
