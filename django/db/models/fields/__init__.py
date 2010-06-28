@@ -151,8 +151,14 @@ class Field(object):
     def set_attributes_from_name(self, name):
         self.name = name
         self.attname, self.column = self.get_attname_column()
-        if self.verbose_name is None and name:
-            self.verbose_name = name.replace('_', ' ')
+
+        from django.db.models.fields.related import RelatedField 
+        # RelatedField instances will set the verbose_name later if it is  
+        # not set here already. The default value for RelatedField's 
+        # verbose_name will be the verbose_name of the related model. 
+        if not isinstance(self, RelatedField): 
+            if self.verbose_name is None and name: 
+                self.verbose_name = name.replace('_', ' ') 
 
     def contribute_to_class(self, cls, name):
         self.set_attributes_from_name(name)
