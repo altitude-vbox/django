@@ -192,6 +192,11 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                 (isinstance(related.field, generic.GenericRelation) and getattr(obj, related.field.verbose_name, None))                
             if rel_objs:
                 has_related_objs = True
+        # Generic relation of the same model
+        elif isinstance(related.field, generic.GenericRelation) and obj._meta == related.model._meta:
+            rel_objs = getattr(obj, related.field.name, None)
+            if rel_objs:
+                has_related_objs = True
 
         if has_related_objs:
             for sub_obj in rel_objs.all():
