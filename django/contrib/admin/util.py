@@ -120,11 +120,11 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                     # Don't display link to edit, because it either has no
                     # admin or is edited inline.
                     nh(deleted_objects, current_depth,
-                        [u'%s: %s' % (capfirst(related.opts.verbose_name), force_unicode(sub_obj)), []])
+                        [u'%s: %s' % (capfirst(force_unicode(related.opts.verbose_name)), force_unicode(sub_obj)), []])
                 elif has_admin and hasattr(admin_site._registry[related.model], 'get_delete_confirmation_message'):
                     # Display a link to the admin page but use an admin function in order to change the message, obj and link
                     result_msg = admin_site._registry[related.model].get_delete_confirmation_message(
-                        obj, u'%s:' % capfirst(related.opts.verbose_name), sub_obj, admin_site, levels_to_root)
+                        obj, u'%s:' % capfirst(force_unicode(related.opts.verbose_name)), sub_obj, admin_site, levels_to_root)
                     if not result_msg:
                         objs_seen.remove(sub_obj) # in order to repeat this obj in other relation
                         continue
@@ -132,7 +132,7 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                 else:
                     # Display a link to the admin page.
                     nh(deleted_objects, current_depth, [mark_safe(u'%s: <a href="%s">%s</a>' %
-                        (escape(capfirst(related.opts.verbose_name)),
+                        (escape(capfirst(force_unicode(related.opts.verbose_name))),
                         get_change_view_url(related.opts.app_label,
                                             related.opts.object_name.lower(),
                                             sub_obj._get_pk_val(),
@@ -151,11 +151,11 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                     # Don't display link to edit, because it either has no
                     # admin or is edited inline.
                     nh(deleted_objects, current_depth,
-                        [u'%s: %s' % (capfirst(related.opts.verbose_name), force_unicode(sub_obj)), []])
+                        [u'%s: %s' % (capfirst(force_unicode(related.opts.verbose_name)), force_unicode(sub_obj)), []])
                 elif has_admin and hasattr(admin_site._registry[related.model], 'get_delete_confirmation_message'):
                     # Display a link to the admin page but use an admin function in order to change the message, obj and link
                     result_msg = admin_site._registry[related.model].get_delete_confirmation_message(
-                        obj, u'%s:' % capfirst(related.opts.verbose_name), sub_obj, admin_site, levels_to_root)
+                        obj, u'%s:' % capfirst(force_unicode(related.opts.verbose_name)), sub_obj, admin_site, levels_to_root)
                     if not result_msg:
                         objs_seen.remove(sub_obj) # in order to repeat this obj in other relation
                         continue
@@ -163,7 +163,7 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
                 else:
                     # Display a link to the admin page.
                     nh(deleted_objects, current_depth, [mark_safe(u'%s: <a href="%s">%s</a>' %
-                        (escape(capfirst(related.opts.verbose_name)),
+                        (escape(capfirst(force_unicode(related.opts.verbose_name))),
                         get_change_view_url(related.opts.app_label,
                                             related.opts.object_name.lower(),
                                             sub_obj._get_pk_val(),
@@ -189,7 +189,7 @@ def get_deleted_objects(deleted_objects, perms_needed, user, obj, opts, current_
         # related.get_accessor_name() could return None for symmetrical relationships
         if rel_opts_name:
             rel_objs = getattr(obj, rel_opts_name, None) or \
-                (isinstance(related.field, generic.GenericRelation) and getattr(obj, related.field.verbose_name, None))                
+                (isinstance(related.field, generic.GenericRelation) and getattr(obj, force_unicode(related.field.verbose_name), None))                
             if rel_objs:
                 has_related_objs = True
         # Generic relation of the same model

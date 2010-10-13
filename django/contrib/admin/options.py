@@ -388,7 +388,7 @@ class ModelAdmin(BaseModelAdmin):
             object_id       = object.pk,
             object_repr     = force_unicode(object),
             action_flag     = ADDITION,
-            change_message  = _('%s was added.' % object._meta.verbose_name)            
+            change_message  = _('%s was added.') % force_unicode(object._meta.verbose_name)            
         )
 
     def log_change(self, request, object, message):
@@ -422,7 +422,7 @@ class ModelAdmin(BaseModelAdmin):
             object_id       = object.pk,
             object_repr     = object_repr,
             action_flag     = DELETION,
-            change_message  = _('%s was deleted.' % object._meta.verbose_name)
+            change_message  = _('%s was deleted.') % force_unicode(object._meta.verbose_name)
         )
 
     def action_checkbox(self, obj):
@@ -525,16 +525,16 @@ class ModelAdmin(BaseModelAdmin):
             for formset in formsets:
                 for added_object in formset.new_objects:
                     change_message.append(_('Added %(name)s "%(object)s".')
-                                          % {'name': added_object._meta.verbose_name,
+                                          % {'name': force_unicode(added_object._meta.verbose_name),
                                              'object': force_unicode(added_object)})
                 for changed_object, changed_fields in formset.changed_objects:
                     change_message.append(_('Changed %(list)s for %(name)s "%(object)s".')
                                           % {'list': get_text_list(changed_fields, _('and')),
-                                             'name': changed_object._meta.verbose_name,
+                                             'name': force_unicode(changed_object._meta.verbose_name),
                                              'object': force_unicode(changed_object)})
                 for deleted_object in formset.deleted_objects:
                     change_message.append(_('Deleted %(name)s "%(object)s".')
-                                          % {'name': deleted_object._meta.verbose_name,
+                                          % {'name': force_unicode(deleted_object._meta.verbose_name),
                                              'object': force_unicode(deleted_object)})
         change_message = ' '.join(change_message)
         return change_message or _('No fields changed.')

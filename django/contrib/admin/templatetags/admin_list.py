@@ -206,7 +206,7 @@ def items_for_result(cl, result, form):
             # Fields with choices are special: Use the representation
             # of the choice.
             elif f.flatchoices:
-                result_repr = dict(f.flatchoices).get(field_val, EMPTY_CHANGELIST_VALUE)
+                result_repr = force_unicode(dict(f.flatchoices).get(field_val, EMPTY_CHANGELIST_VALUE))
             else:
                 result_repr = escape(field_val)
         if force_unicode(result_repr) == '':
